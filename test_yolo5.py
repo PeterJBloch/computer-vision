@@ -62,6 +62,7 @@ def unwrap_detection(input_image, output_data):
 
     return class_ids, confidences, boxes
 
+#This line is changed for real-time detection so that it's the CV camera
 cap = cv2.VideoCapture(videofile)
 
 if (cap.isOpened()== False):
