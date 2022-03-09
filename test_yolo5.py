@@ -6,10 +6,11 @@ import numpy as np
 # model = torch.hub.load('ultralytics/yolov5', 'custom', path = path_to_local_pt)
 path_to_net = "./best.onnx"
 net = cv2.dnn.readNet('best.onnx')
+confidence_thresh = 0.5
 
 net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
 net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA_FP16)
-videofile = "./datasets/apple_tree_videos/Aspect-adjusted_video.mp4"
+videofile = "./Aspect-adjusted_video.mp4"
 
 def write_coords(data_string):
     with open("coords.txt", "w") as writefile:
@@ -35,13 +36,13 @@ def unwrap_detection(input_image, output_data):
     rows = output_data.shape[0]
     image_width, image_height, _ = input_image.shape
 
-    x_factor = image_width / 640
+    x_factor = image_width / 360
     y_factor =  image_height / 640
 
     for r in range(rows):
         row = output_data[r]
         confidence = row[4]
-        if confidence >= 0.5:
+        if confidence >= confidence_thresh:
 
             classes_scores = row[5:]
             _, _, _, max_indx = cv2.minMaxLoc(classes_scores)
@@ -78,7 +79,7 @@ while(cap.isOpened()):
         class_ids, confidences, boxes = unwrap_detection(frame, output)
         
         #Remove duplicates using non-max suppression
-        indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.25, 0.45) 
+        indexes = cv2.dnn.NMSBoxes(boxes, confidences, confidence_thresh, 0.45) 
         result_class_ids = []
         result_confidences = []
         result_boxes = []
