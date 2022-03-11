@@ -63,14 +63,23 @@ def unwrap_detection(input_image, output_data):
     return class_ids, confidences, boxes
 
 #This line is changed for real-time detection so that it's the CV camera
-cap = cv2.VideoCapture(videofile)
+# cap = cv2.VideoCapture(videofile)
+
+cap = cv2.VideoCapture(0)
+width, height = (640, 360)
+cap.set(3, width)
+cap.set(4, height)
 
 if (cap.isOpened()== False):
     print("Error opening video stream or file")
-# Read until video is completed
-while(cap.isOpened()):
+
+# Originally was read until video is completed
+# while(cap.isOpened()):
+
+while True:
     # Capture frame-by-frame
     ret, frame = cap.read()
+
     if ret == True:
         # print("frame shape: {}".format(frame.shape))
         adjusted_image = format_yolov5(frame)
