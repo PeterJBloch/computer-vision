@@ -1,12 +1,14 @@
 import torch
 import cv2
 import numpy as np
+import time
 
 # path_to_local_pt = "./best.pt"
 # model = torch.hub.load('ultralytics/yolov5', 'custom', path = path_to_local_pt)
 path_to_net = "./best.onnx"
 net = cv2.dnn.readNet('best.onnx')
 confidence_thresh = 0.5
+times = []
 
 net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
 net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA_FP16)
@@ -16,6 +18,27 @@ def write_coords(data_string):
     with open("coords.txt", "w") as writefile:
         writefile.write(data_string + "\n")
     return
+
+def log_time(timelist):
+    with open("times.txt", 'a') as writefile:
+        for i in range(len(timelist)):
+            writefile.write(str(timelist[i]) + "\n")
+    return
+
+def time_stats(times):
+    # times = []
+    with open("times.txt", 'r') as readfile:
+        for line in readfile:
+            new_line = line.strip()
+            print(new_line)
+            if (new_line!=""):
+                times.append(float(new_line))
+
+    # print(times)
+    print("samples:", len(times))
+    print("mean:",np.mean(times))
+    print("FPS:", 1/np.mean(times))
+    print("std:",np.std(times,dtype=np.float64))
 
 def format_yolov5(source): #Function taken from medium: https://medium.com/mlearning-ai/detecting-objects-with-yolov5-opencv-python-and-c-c7cf13d1483c
     # YOLOV5 needs a square image. Basically, expanding the image to a square
@@ -73,11 +96,18 @@ while(cap.isOpened()):
     ret, frame = cap.read()
     if ret == True:
         # print("frame shape: {}".format(frame.shape))
+        start = time.time()
         adjusted_image = format_yolov5(frame)
         net.setInput(adjusted_image)
         predictions = net.forward()
         output = predictions[0]
         class_ids, confidences, boxes = unwrap_detection(frame, output)
+        end = time.time()
+        # log_time(end-start)
+        times.append(end-start)
+        # print(times)
+        # print("here")
+        # time_stats()
         
         #Remove duplicates using non-max suppression
         indexes = cv2.dnn.NMSBoxes(boxes, confidences, confidence_thresh, 0.45) 
@@ -98,7 +128,7 @@ while(cap.isOpened()):
 
             #attempted to put in json format string
             string_to_write = "{"+"confidence: {}".format(confidences[0]) + ", box (x,y,w,h): {}".format(boxes[0])+ "}"
-            write_coords(string_to_write)
+            # write_coords(string_to_write)
             # Display the resulting frame
             box = boxes[0]
             conf = confidences[0]
@@ -109,6 +139,7 @@ while(cap.isOpened()):
         else:
             #for now do nothing
             pass
+        
         
         cv2.imshow('Frame',frame)
 	    # Press Q on keyboard to  exit
@@ -122,5 +153,7 @@ while(cap.isOpened()):
 cap.release()
 # Closes all the frames
 cv2.destroyAllWindows()
+log_time(times)
+time_stats([])
 # predictions = net.forward()
 # output = predictions[0]
